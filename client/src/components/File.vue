@@ -6,8 +6,9 @@
   </div>
 </template>
 <script lang="jsx" setup name="File">
-import { getFileHash ,sliceFile} from "@/utils/shared";
-
+import { getFileHash, sliceFile } from "@/utils/shared";
+import { CHUNK_SIZE } from "@/constant"
+import axios from "axios";
 import { ref, reactive } from "vue";
 const handleFileUpload = async (e) => {
   const file = e.target.files[0]
@@ -17,7 +18,28 @@ const handleFileUpload = async (e) => {
   console.log(md5Value)
 
   const fileChunks = sliceFile(file);
-  console.log(fileChunks);
+  
+  for (let i = 0; i < fileChunks.length; i++){
+    const formData = new FormData();
+    let item = fileChunks[i];
+    formData.append("totalNumber", fileChunks.length);
+    formData.append("chunkSize", CHUNK_SIZE);
+    formData.append("chunkIndex", i);
+    formData.append("fileHash", md5Value);
+    formData.append("file", new File([item.fileChunk], item.fileName))  
+    axios({
+    url: "/api/file/upload",
+    method:'post',
+    data: formData,
+    headers: {
+      'Content-type': 'multipart/form-data'
+    }
+  }).then((res) => {
+    console.log(res.data);
+  })  
+   
+  }
+  
 }
 </script>
 

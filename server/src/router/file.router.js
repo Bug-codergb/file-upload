@@ -3,5 +3,6 @@ const fileRouter = new KoaRouter({ prefix: '/file' });
 const { 
   upload
 } = require("../controller/file.controller")
-fileRouter.get("/upload", upload);
+const { fileUpload } = require("../middleware/file.middleware")
+fileRouter.post("/upload",fileUpload, upload);
 module.exports = fileRouter;
