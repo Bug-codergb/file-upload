@@ -39,7 +39,7 @@ function fileStorageChunk(filePath) {
       },
       filename: function (req, file, cb) {
         const { totalNumber, chunkIndex, filePath, fileHash } = req.body;
-        cb(null, fileHash+`-${chunkIndex}`+ path.extname(file.originalname));
+        cb(null, fileHash+`-${chunkIndex}-${totalNumber}`+ path.extname(file.originalname));
       }
     })
   }catch (e) {

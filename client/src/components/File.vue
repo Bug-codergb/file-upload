@@ -6,20 +6,49 @@
   </div>
 </template>
 <script lang="jsx" setup name="File">
-import { getFileHash, sliceFile } from "@/utils/shared";
+import { getFileHash, sliceFile,checkFileMd5 } from "@/utils/shared";
 import { CHUNK_SIZE } from "@/constant"
 import axios from "axios";
 import { ref, reactive } from "vue";
 const handleFileUpload = async (e) => {
   const file = e.target.files[0]
-  console.log(file)
   const ret = await getFileHash(file);
   const md5Value = ret.HASH;
-  console.log(md5Value)
+ 
 
   const fileChunks = sliceFile(file);
-  
-  for (let i = 0; i < fileChunks.length; i++){
+
+  const { isUpload, chunkStatusList } = await checkFileMd5(md5Value);
+  console.log(isUpload);
+  if (!isUpload) {
+    const hasEmptyChunk = chunkStatusList.findIndex((item) => item === 0);
+    if (hasEmptyChunk === -1) {
+      console.log("上传成功");
+      return;
+    } else {
+      chunkStatusList.forEach((item, index) => {
+        if (chunkStatusList[index] !== 1) {
+          let formData = new FormData();
+          formData.append("totalNumber", fileChunks.length);
+          formData.append("chunkSize", CHUNK_SIZE);
+          formData.append("chunkIndex", index);
+          formData.append("fileHash", md5Value);
+          formData.append("file", new File([fileChunks[index]], fileChunks[index].fileName))  
+          axios({
+    url: "/api/file/upload",
+    method:'post',
+    data: formData,
+    headers: {
+      'Content-type': 'multipart/form-data'
+    }
+  }).then((res) => {
+    console.log(res.data);
+  })  
+        }
+      })
+    }
+  } else {
+    for (let i = 0; i < fileChunks.length; i++){
     const formData = new FormData();
     let item = fileChunks[i];
     formData.append("totalNumber", fileChunks.length);
@@ -39,6 +68,10 @@ const handleFileUpload = async (e) => {
   })  
    
   }
+  }
+  return 
+  
+  
   
 }
 </script>
