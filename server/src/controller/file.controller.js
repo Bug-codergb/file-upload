@@ -62,10 +62,16 @@ class FileController{
               const extname = path.extname(item);
               fs.appendFileSync(`${finalStoragePath}/${md5}${extname}`,fs.readFileSync(`${source}/${item}`))
             })
+            ctx.body = {
+              status: 200,
+              message:"文件合并完成"
+            }
           } else {
             fs.mkdirSync('file');  
+            //todo :合并文件
           }
         })
+        
       }
     } catch (e) {
       ctx.body = {
