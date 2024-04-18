@@ -6,5 +6,5 @@ app.use(koaBodyparser());
 app.use(fileRouter.routes());
 app.use(fileRouter.allowedMethods());
 app.listen(8888, () => {
-  console.log("服务启动")
+  console.log("服务启动") 
 })

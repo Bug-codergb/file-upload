@@ -2,4 +2,6 @@ node_modules
 /dist
 /upload
 upload
+/file
+file
 DS_Store

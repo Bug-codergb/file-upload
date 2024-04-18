@@ -19,7 +19,6 @@ const createUploadPath=(relativePath)=>{
   })
 }
 function fileStorageChunk(filePath) {
-  console.log(filePath);
   try {
     return Multer.diskStorage({
       destination: function (req, file, cb) {
@@ -56,7 +55,6 @@ function chunkHandle(relativePath,uploadName,method){
     const upload = Multer({
       storage:fileStorageChunk(relativePath),
     })
-   console.log(uploadName)
     return upload[method](uploadName)
   }catch (e) {
     console.log(e)  
@@ -65,7 +63,6 @@ function chunkHandle(relativePath,uploadName,method){
 
 //视频上传
 const fileUpload = chunkHandle("./upload/", 'file', 'single'); 
-console.log(fileUpload)
 module.exports = {  
   fileUpload
 }
