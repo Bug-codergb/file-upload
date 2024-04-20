@@ -3,23 +3,15 @@ import { CHUNK_SIZE } from "@/constant/index";
 import axios from "axios";
 
 export function getFileHash(file) {
+  const spark = new SparkMD5.ArrayBuffer();
+  let worker = new Worker(new URL("../workers/index.js", import.meta.url));
+  worker.postMessage({
+    file,
+  })
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsArrayBuffer(file);
-    reader.onload = function (e) {
-      if (e.target) {
-        const buffer = e.target.result;
-        const spark = new SparkMD5.ArrayBuffer();
-        if (buffer) {
-          spark.append(buffer);
-          let HASH = spark.end();
-          resolve({
-            buffer,
-            HASH,
-          });
-        }
-      }
-    };
+    worker.onmessage = function (e) {
+      resolve(e.data);
+    }
   });
 }
 export function sliceFile(file) {
