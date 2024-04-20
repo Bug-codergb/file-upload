@@ -7,22 +7,32 @@
   </div>
 </template>
 <script lang="jsx" setup name="File">
-import { getFileHash, sliceFile, checkFileMd5 } from "@/utils/shared";
+import {
+  getFileHash,
+  sliceFile,
+  checkFileMd5,
+  uploadFile,
+} from "@/utils/shared";
 import { CHUNK_SIZE } from "@/constant";
+import { ref } from "vue";
 import axios from "axios";
-import { ref, reactive } from "vue";
 const progress = ref(0);
 
 let count = 0;
+let promiseList = [];
 const handleFileUpload = async (e) => {
   const file = e.target.files[0];
   const ret = await getFileHash(file);
   const md5Value = ret.HASH;
   const fileChunks = sliceFile(file);
-  const { isUpload, chunkStatusList } = await checkFileMd5(md5Value);
+  const {
+    isUpload,
+    chunkStatusList,
+    isMerged = false,
+  } = await checkFileMd5(md5Value);
   if (!isUpload) {
     const hasEmptyChunk = chunkStatusList.filter((item) => item === 0);
-    if (hasEmptyChunk.length === 0) {
+    if (isMerged || hasEmptyChunk.length === 0) {
       console.log("上传成功");
       progress.value = 100;
       return;
@@ -30,52 +40,51 @@ const handleFileUpload = async (e) => {
       count = fileChunks.length - hasEmptyChunk.length;
       chunkStatusList.forEach((item, index) => {
         if (chunkStatusList[index] !== 1) {
-          let formData = new FormData();
-          formData.append("totalNumber", fileChunks.length);
-          formData.append("chunkSize", CHUNK_SIZE);
-          formData.append("chunkIndex", index);
-          formData.append("fileHash", md5Value);
-          formData.append(
-            "file",
-            new File([fileChunks[index]], fileChunks[index].fileName)
+          let promise = uploadFile(
+            fileChunks.length,
+            CHUNK_SIZE,
+            index,
+            md5Value,
+            new File([fileChunks[index]], fileChunks[index].fileName),
+            () => {
+              count += 1;
+              progress.value = (count / fileChunks.length) * 100;
+            }
           );
-          axios({
-            url: "/api/file/upload",
-            method: "post",
-            data: formData,
-            headers: {
-              "Content-type": "multipart/form-data",
-            },
-          }).then((res) => {
-            count += 1;
-            progress.value = count / fileChunks.length * 100;
-          });
+          promiseList.push(promise);
         }
       });
     }
   } else {
     for (let i = 0; i < fileChunks.length; i++) {
-      const formData = new FormData();
       let item = fileChunks[i];
-      formData.append("totalNumber", fileChunks.length);
-      formData.append("chunkSize", CHUNK_SIZE);
-      formData.append("chunkIndex", i);
-      formData.append("fileHash", md5Value);
-      formData.append("file", new File([item.fileChunk], item.fileName));
-      axios({
-        url: "/api/file/upload",
-        method: "post",
-        data: formData,
-        headers: {
-          "Content-type": "multipart/form-data",
-        },
-      }).then((res) => {
-        
-        count += 1;
-        progress.value = count / fileChunks.length * 100;
-      });
+      let promise = uploadFile(
+        fileChunks.length,
+        CHUNK_SIZE,
+        i,
+        md5Value,
+        new File([item.fileChunk], item.fileName),
+        () => {
+          count += 1;
+          progress.value = (count / fileChunks.length) * 100;
+        }
+      );
+      promiseList.push(promise);
     }
   }
+
+  Promise.all(promiseList).then((res) => {
+    axios({
+      url: '/api/file/merge',
+      method: 'post',
+      data: {
+        md5:md5Value,
+        totalNumber:fileChunks.length
+      }
+    }).then((res) => {
+      console.log("文件上传完成")
+    })
+  })
   return;
 };
 </script>
