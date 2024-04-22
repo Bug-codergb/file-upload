@@ -62,7 +62,7 @@ class WsApp extends WebSocket{
   }
   reconnect() {
     this.reconnectTimer = setTimeout(() => {
-      this.wsReconnect();
+      window.navigator.onLine && this.wsReconnect();
     },1000)
   }
   sendMsg(data) {
